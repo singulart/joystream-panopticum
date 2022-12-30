@@ -1,0 +1,11 @@
+{
+  "outDir": "src/types",
+  "specVersions": "https://query.joystream.org/graphql",
+  "events": [
+    "Balances.Transfer"
+  ],
+  "calls": [ 
+  ],
+  "storage": [
+  ]
+}
