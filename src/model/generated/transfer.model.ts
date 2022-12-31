@@ -13,7 +13,7 @@ export class Transfer {
 
   @Index_()
   @Column_("int4", {nullable: false})
-  blockNumber!: number
+  blockNumber!: bigint
 
   @Index_()
   @Column_("timestamp with time zone", {nullable: false})
@@ -32,9 +32,9 @@ export class Transfer {
   to!: Account
 
   @Index_()
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  amount!: bigint
+  @Column_("numeric", {nullable: false})
+  amount!: number
 
-  @Column_("numeric", {transformer: marshal.bigintTransformer, nullable: false})
-  fee!: bigint
+  @Column_("numeric", {nullable: false})
+  fee!: number
 }

@@ -1,4 +1,3 @@
-import {lookupArchive} from "@subsquid/archive-registry"
 import * as ss58 from "@subsquid/ss58"
 import {BatchContext, BatchProcessorItem, SubstrateBatchProcessor} from "@subsquid/substrate-processor"
 import {Store, TypeormDatabase} from "@subsquid/typeorm-store"
@@ -6,22 +5,12 @@ import {In} from "typeorm"
 import {Account, Transfer} from "./model"
 import {BalancesTransferEvent} from "./types/events"
 
+const JOY_HAPI_DECIMALS = 1.e10
 
 const processor = new SubstrateBatchProcessor()
     .setDataSource({
-        // Lookup archive by the network name in the Subsquid registry
-        //archive: lookupArchive("kusama", {release: "FireSquid"})
-
-        // Use archive created by archive/docker-compose.yml
-        archive: {
-          "provider": "subsquid",
-          "dataSourceUrl": "https://query.joystream.org/graphql",
-          "explorerUrl": "https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.explorer.subsquid.io/",
-          "release": "FireSquid",
-          "image": "subsquid/substrate-ingest:1",
-          "ingest": "subsquid/substrate-ingest:1",
-          "gateway": "subsquid/substrate-gateway:2"
-        }
+        // this is the address of the locally running archive (in docker)
+        archive: "http://localhost:8888/graphql"
     })
     .addEvent('Balances.Transfer', {
         data: {
@@ -80,13 +69,13 @@ processor.run(new TypeormDatabase(), async ctx => {
 
 interface TransferEvent {
     id: string
-    blockNumber: number
+    blockNumber: bigint
     timestamp: Date
     extrinsicHash?: string
     from: string
     to: string
-    amount: bigint
-    fee?: bigint
+    amount: number
+    fee?: number
 }
 
 
@@ -94,7 +83,7 @@ function getTransfers(ctx: Ctx): TransferEvent[] {
     let transfers: TransferEvent[] = []
     for (let block of ctx.blocks) {
         for (let item of block.items) {
-            if (item.name == "Balances.Transfer") {
+            if (item.name === "Balances.Transfer") {
                 let e = new BalancesTransferEvent(ctx, item.event)
                 let rec: {from: Uint8Array, to: Uint8Array, amount: bigint}
                 if (e.isV1020) {
@@ -111,13 +100,13 @@ function getTransfers(ctx: Ctx): TransferEvent[] {
                 
                 transfers.push({
                     id: item.event.id,
-                    blockNumber: block.header.height,
+                    blockNumber: BigInt(block.header.height),
                     timestamp: new Date(block.header.timestamp),
                     extrinsicHash: item.event.extrinsic?.hash,
-                    from: ss58.codec('kusama').encode(rec.from),
-                    to: ss58.codec('kusama').encode(rec.to),
-                    amount: rec.amount,
-                    fee: item.event.extrinsic?.fee || 0n
+                    from: ss58.codec('joystream').encode(rec.from),
+                    to: ss58.codec('joystream').encode(rec.to), 
+                    amount: Number(rec.amount) / JOY_HAPI_DECIMALS,
+                    fee: Number(item.event.extrinsic?.fee || 0n)
                 })
             }
         }
